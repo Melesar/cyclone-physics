@@ -793,6 +793,16 @@ namespace cyclone {
         void addRotation(const Vector3 &deltaRotation);
 
         /**
+         * Gets the current motion metric used for sleeping.
+         *
+         * @return The current motion value.
+         */
+        real getMotion() const
+        {
+            return motion;
+        }
+
+        /**
          * Returns true if the body is awake and responding to
          * integration.
          *
