@@ -34,7 +34,71 @@ namespace cyclone {
      * Forward declaration, see full declaration below for complete
      * documentation.
      */
+    class Contact;
     class ContactResolver;
+    class ContactResolverDebugListener
+    {
+    public:
+        virtual ~ContactResolverDebugListener() {}
+
+        virtual bool shouldLogContact(const Contact &contact) const
+        {
+            return false;
+        }
+
+        virtual void onPrepareContact(unsigned contactIndex,
+                                      const Contact &contact,
+                                      real duration,
+                                      const Matrix3 &contactToWorld,
+                                      real desiredDeltaVelocity)
+        {
+        }
+
+        virtual void onPositionIteration(unsigned iteration)
+        {
+        }
+
+        virtual void onPositionResolution(unsigned iteration,
+                                          unsigned contactIndex,
+                                          const Contact &contact,
+                                          const Matrix3 &contactToWorld,
+                                          real desiredDeltaVelocity,
+                                          const Vector3 linearChange[2],
+                                          const Vector3 angularChange[2])
+        {
+        }
+
+        virtual void onPositionDepthUpdate(unsigned iteration,
+                                           unsigned contactIndex,
+                                           const Contact &contact,
+                                           real penetrationDelta,
+                                           real newPenetration)
+        {
+        }
+
+        virtual void onVelocityIteration(unsigned iteration)
+        {
+        }
+
+        virtual void onVelocityResolution(unsigned iteration,
+                                          unsigned contactIndex,
+                                          const Contact &contact,
+                                          const Matrix3 &contactToWorld,
+                                          real desiredDeltaVelocity,
+                                          const Vector3 velocityChange[2],
+                                          const Vector3 rotationChange[2])
+        {
+        }
+
+        virtual void onDesiredVelocityUpdate(unsigned iteration,
+                                             unsigned contactIndex,
+                                             const Contact &contact,
+                                             const Vector3 &contactVelocityDelta,
+                                             real oldDesiredDeltaVelocity,
+                                             real newDesiredDeltaVelocity)
+        {
+        }
+    };
 
     /**
      * A contact represents two bodies in contact. Resolving a
@@ -318,6 +382,11 @@ namespace cyclone {
          */
         bool validSettings;
 
+        /**
+         * Optional debug listener for resolution internals.
+         */
+        ContactResolverDebugListener *debugListener;
+
     public:
         /**
          * Creates a new contact resolver with the given number of iterations
@@ -363,6 +432,14 @@ namespace cyclone {
          */
         void setEpsilon(real velocityEpsilon,
                         real positionEpsilon);
+
+        /**
+         * Sets an optional debug listener for contact resolution.
+         */
+        void setDebugListener(ContactResolverDebugListener *listener)
+        {
+            debugListener = listener;
+        }
 
         /**
          * Resolves a set of contacts for both penetration and velocity.

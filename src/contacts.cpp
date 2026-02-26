@@ -13,6 +13,7 @@
 #include <cyclone/contacts.h>
 #include <memory.h>
 #include <assert.h>
+#include <vector>
 
 using namespace cyclone;
 
@@ -513,6 +514,7 @@ ContactResolver::ContactResolver(unsigned iterations,
                                  real velocityEpsilon,
                                  real positionEpsilon)
 {
+    debugListener = NULL;
     setIterations(iterations, iterations);
     setEpsilon(velocityEpsilon, positionEpsilon);
 }
@@ -522,6 +524,7 @@ ContactResolver::ContactResolver(unsigned velocityIterations,
                                  real velocityEpsilon,
                                  real positionEpsilon)
 {
+    debugListener = NULL;
     setIterations(velocityIterations);
     setEpsilon(velocityEpsilon, positionEpsilon);
 }
@@ -568,11 +571,24 @@ void ContactResolver::prepareContacts(Contact* contacts,
                                       real duration)
 {
     // Generate contact velocity and axis information.
+    unsigned index = 0;
     Contact* lastContact = contacts + numContacts;
     for (Contact* contact=contacts; contact < lastContact; contact++)
     {
         // Calculate the internal contact data (inertia, basis, etc).
         contact->calculateInternals(duration);
+
+        if (debugListener && debugListener->shouldLogContact(*contact))
+        {
+            debugListener->onPrepareContact(
+                index,
+                *contact,
+                duration,
+                contact->contactToWorld,
+                contact->desiredDeltaVelocity
+            );
+        }
+        ++index;
     }
 }
 
@@ -587,6 +603,8 @@ void ContactResolver::adjustVelocities(Contact *c,
     velocityIterationsUsed = 0;
     while (velocityIterationsUsed < velocityIterations)
     {
+        if (debugListener) debugListener->onVelocityIteration(velocityIterationsUsed);
+
         // Find contact with maximum magnitude of probable velocity change.
         real max = velocityEpsilon;
         unsigned index = numContacts;
@@ -605,6 +623,18 @@ void ContactResolver::adjustVelocities(Contact *c,
 
         // Do the resolution on the contact that came out top.
         c[index].applyVelocityChange(velocityChange, rotationChange);
+        if (debugListener && debugListener->shouldLogContact(c[index]))
+        {
+            debugListener->onVelocityResolution(
+                velocityIterationsUsed,
+                index,
+                c[index],
+                c[index].contactToWorld,
+                c[index].desiredDeltaVelocity,
+                velocityChange,
+                rotationChange
+            );
+        }
 
         // With the change in velocity of the two bodies, the update of
         // contact velocities means that some of the relative closing
@@ -626,10 +656,24 @@ void ContactResolver::adjustVelocities(Contact *c,
 
                         // The sign of the change is negative if we're dealing
                         // with the second body in a contact.
+                        const Vector3 oldContactVelocity = c[i].contactVelocity;
+                        const real oldDesiredDeltaVelocity = c[i].desiredDeltaVelocity;
                         c[i].contactVelocity +=
                             c[i].contactToWorld.transformTranspose(deltaVel)
                             * (b?-1:1);
                         c[i].calculateDesiredDeltaVelocity(duration);
+
+                        if (debugListener && debugListener->shouldLogContact(c[i]))
+                        {
+                            debugListener->onDesiredVelocityUpdate(
+                                velocityIterationsUsed,
+                                i,
+                                c[i],
+                                c[i].contactVelocity - oldContactVelocity,
+                                oldDesiredDeltaVelocity,
+                                c[i].desiredDeltaVelocity
+                            );
+                        }
                     }
                 }
             }
@@ -651,6 +695,8 @@ void ContactResolver::adjustPositions(Contact *c,
     positionIterationsUsed = 0;
     while (positionIterationsUsed < positionIterations)
     {
+        if (debugListener) debugListener->onPositionIteration(positionIterationsUsed);
+
         // Find biggest penetration
         max = positionEpsilon;
         index = numContacts;
@@ -672,9 +718,22 @@ void ContactResolver::adjustPositions(Contact *c,
             linearChange,
             angularChange,
             max);
+        if (debugListener && debugListener->shouldLogContact(c[index]))
+        {
+            debugListener->onPositionResolution(
+                positionIterationsUsed,
+                index,
+                c[index],
+                c[index].contactToWorld,
+                c[index].desiredDeltaVelocity,
+                linearChange,
+                angularChange
+            );
+        }
 
         // Again this action may have changed the penetration of other
         // bodies, so we update contacts.
+        std::vector<real> penetrationDelta(numContacts, (real)0.0);
         for (i = 0; i < numContacts; i++)
         {
             // Check each body in the contact
@@ -694,10 +753,27 @@ void ContactResolver::adjustPositions(Contact *c,
                         // dealing with the second body in a contact
                         // and negative otherwise (because we're
                         // subtracting the resolution)..
-                        c[i].penetration +=
-                            deltaPosition.scalarProduct(c[i].contactNormal)
+                        real delta = deltaPosition.scalarProduct(c[i].contactNormal)
                             * (b?1:-1);
+                        c[i].penetration += delta;
+                        penetrationDelta[i] += delta;
                     }
+                }
+            }
+        }
+        if (debugListener)
+        {
+            for (i = 0; i < numContacts; i++)
+            {
+                if (debugListener->shouldLogContact(c[i]))
+                {
+                    debugListener->onPositionDepthUpdate(
+                        positionIterationsUsed,
+                        i,
+                        c[i],
+                        penetrationDelta[i],
+                        c[i].penetration
+                    );
                 }
             }
         }
