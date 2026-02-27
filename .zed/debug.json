@@ -1,0 +1,17 @@
+// Project-local debug tasks
+//
+// For more documentation on how to configure debug tasks,
+// see: https://zed.dev/docs/debugger
+[
+  {
+    "label": "Debug cyclone",
+    "build": {
+      "command": "make",
+      "args": ["lib/linux/libcyclone.a", "boxes"],
+      "cwd": "$ZED_WORKTREE_ROOT",
+    },
+    "program": "$ZED_WORKTREE_ROOT/bin/linux/boxes",
+    "request": "launch",
+    "adapter": "CodeLLDB",
+  },
+]

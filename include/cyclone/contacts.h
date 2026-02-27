@@ -85,6 +85,7 @@ namespace cyclone {
                                           const Contact &contact,
                                           const Matrix3 &contactToWorld,
                                           real desiredDeltaVelocity,
+                                          const Vector3 impulse,
                                           const Vector3 velocityChange[2],
                                           const Vector3 rotationChange[2])
         {
@@ -171,7 +172,6 @@ namespace cyclone {
         void setBodyData(RigidBody* one, RigidBody *two,
                          real friction, real restitution);
 
-    protected:
 
         /**
          * A transform matrix that converts co-ordinates in the contact's
@@ -253,7 +253,8 @@ namespace cyclone {
          * contact alone.
          */
         void applyVelocityChange(Vector3 velocityChange[2],
-                                 Vector3 rotationChange[2]);
+                                 Vector3 rotationChange[2],
+                                 Vector3& impulse);
 
         /**
          * Performs an inertia weighted penetration resolution of this

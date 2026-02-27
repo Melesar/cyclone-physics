@@ -965,10 +965,11 @@ namespace cyclone {
          */
         void setBlockInertiaTensor(const Vector3 &halfSizes, real mass)
         {
+            float m = mass / 3.0;
             Vector3 squares = halfSizes.componentProduct(halfSizes);
-            setInertiaTensorCoeffs(0.3f*mass*(squares.y + squares.z),
-                0.3f*mass*(squares.x + squares.z),
-                0.3f*mass*(squares.x + squares.y));
+            setInertiaTensorCoeffs(m*(squares.y + squares.z),
+                m*(squares.x + squares.z),
+                m*(squares.x + squares.y));
         }
 
         /**

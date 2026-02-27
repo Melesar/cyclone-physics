@@ -43,7 +43,6 @@ public:
         body->setAngularDamping((cyclone::real)0.8);
         body->setAcceleration(cyclone::Vector3::GRAVITY);
         body->clearAccumulators();
-        body->setAwake(true);
         body->setCanSleep(true);
         body->calculateDerivedData();
 
@@ -252,9 +251,18 @@ class BoxesDemo : public RigidBodyApplication
             std::fprintf(output, "      normal=");
             printVector(output, contact.contactNormal);
             std::fprintf(output, "\n");
+            std::fprintf(output, "      relative_pos[0]=");
+            printVector(output, contact.relativeContactPosition[0]);
+            std::fprintf(output, "\n");
+            std::fprintf(output, "      relative_pos[1]=");
+            printVector(output, contact.relativeContactPosition[1]);
+            std::fprintf(output, "\n");
             std::fprintf(output, "      depth=%.6f\n", (double)contact.penetration);
             std::fprintf(output, "      basis=");
             printMatrix(output, contactToWorld);
+            std::fprintf(output, "\n");
+            std::fprintf(output, "      local_velocity=");
+            printVector(output, contact.contactVelocity);
             std::fprintf(output, "\n");
             std::fprintf(output, "      desiredDeltaVelocity=%.6f\n", (double)desiredDeltaVelocity);
         }
@@ -333,6 +341,7 @@ class BoxesDemo : public RigidBodyApplication
                                           const cyclone::Contact &contact,
                                           const cyclone::Matrix3 &contactToWorld,
                                           cyclone::real desiredDeltaVelocity,
+                                          const cyclone::Vector3 impulse,
                                           const cyclone::Vector3 velocityChange[2],
                                           const cyclone::Vector3 rotationChange[2])
         {
@@ -350,6 +359,9 @@ class BoxesDemo : public RigidBodyApplication
             printMatrix(output, contactToWorld);
             std::fprintf(output, "\n");
             std::fprintf(output, "      desiredDeltaVelocity=%.6f\n", (double)desiredDeltaVelocity);
+            std::fprintf(output, "      impulse=");
+            printVector(output, impulse);
+            std::fprintf(output, "\n");
             std::fprintf(output, "      velocityChange[0]=");
             printVector(output, velocityChange[0]);
             std::fprintf(output, "\n");
@@ -405,7 +417,7 @@ public:
 
 BoxesDemo::BoxesDemo()
     : RigidBodyApplication(),
-      collisionLogger(10)
+      collisionLogger(240)
 {
     reset();
     pauseSimulation = false;
@@ -455,8 +467,10 @@ void BoxesDemo::reset()
 
     // Box #1 standing on the ground: center at y = 1.3 / 2.
     boxes[0].setState(cyclone::Vector3(0, (cyclone::real)0.65, 0), halfSize, mass);
+    boxes[0].body->setAwake(false);
     // Box #2 above: center at y = 7.
     boxes[1].setState(cyclone::Vector3(0, (cyclone::real)7.0, 0), halfSize, mass);
+    boxes[1].body->setAwake();
 
     cData.contactCount = 0;
 }

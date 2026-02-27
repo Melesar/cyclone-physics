@@ -206,7 +206,8 @@ void Contact::calculateInternals(real duration)
 }
 
 void Contact::applyVelocityChange(Vector3 velocityChange[2],
-                                  Vector3 rotationChange[2])
+                                  Vector3 rotationChange[2],
+                                  Vector3& impulse)
 {
     // Get hold of the inverse mass and inverse inertia tensor, both in
     // world coordinates.
@@ -231,7 +232,7 @@ void Contact::applyVelocityChange(Vector3 velocityChange[2],
     }
 
     // Convert impulse to world coordinates
-    Vector3 impulse = contactToWorld.transform(impulseContact);
+    impulse = contactToWorld.transform(impulseContact);
 
     // Split in the impulse into linear and rotational components
     Vector3 impulsiveTorque = relativeContactPosition[0] % impulse;
@@ -621,8 +622,9 @@ void ContactResolver::adjustVelocities(Contact *c,
         // Match the awake state at the contact
         c[index].matchAwakeState();
 
+        Vector3 impulse;
         // Do the resolution on the contact that came out top.
-        c[index].applyVelocityChange(velocityChange, rotationChange);
+        c[index].applyVelocityChange(velocityChange, rotationChange, impulse);
         if (debugListener && debugListener->shouldLogContact(c[index]))
         {
             debugListener->onVelocityResolution(
@@ -631,6 +633,7 @@ void ContactResolver::adjustVelocities(Contact *c,
                 c[index],
                 c[index].contactToWorld,
                 c[index].desiredDeltaVelocity,
+                impulse,
                 velocityChange,
                 rotationChange
             );
